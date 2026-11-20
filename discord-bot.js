@@ -32,7 +32,9 @@ async function post(content) {
 }
 
 function runClaude(prompt, fresh) {
-  const args = ["-p", prompt, "--output-format", "json", "--permission-mode", "auto"];
+  // stream-json plutôt que json : un hook Stop qui interroge le modèle peut faire échouer la fin
+  // (« No messages returned from query »), le flux garde quand même la réponse déjà écrite.
+  const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"];
   if (!fresh && sessionId) args.push("--resume", sessionId);
   return new Promise(resolve => {
     const p = spawn("claude", args, { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] });
@@ -41,11 +43,19 @@ function runClaude(prompt, fresh) {
     p.stderr.on("data", d => err += d);
     p.on("error", e => resolve(`❌ Impossible de lancer claude : ${e.message}`));
     p.on("close", code => {
-      try {
-        const r = JSON.parse(out);
-        if (r.session_id) sessionId = r.session_id;
-        resolve(`${r.is_error ? "❌" : "✅"} ${r.result || "(pas de texte)"}`);
-      } catch { resolve(`❌ claude a quitté (code ${code})\n${(err || out).slice(-1500)}`); }
+      let result = null, lastText = null;
+      for (const line of out.split("\n")) {
+        let m; try { m = JSON.parse(line); } catch { continue; }
+        if (m.session_id) sessionId = m.session_id;
+        if (m.type === "result") result = m;
+        if (m.type === "assistant") {
+          const text = (m.message?.content ?? []).filter(c => c.type === "text").map(c => c.text).join("\n");
+          if (text) lastText = text;
+        }
+      }
+      if (result?.result) resolve(`${result.is_error ? "❌" : "✅"} ${result.result}`);
+      else if (lastText) resolve(`✅ ${lastText}`);
+      else resolve(`❌ claude a quitté (code ${code})\n${(err || out).slice(-1500)}`);
     });
   });
 }
