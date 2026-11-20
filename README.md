@@ -1,33 +1,54 @@
 # Discordbot-claudecode
 
-Commande Discord `/claude <prompt>` qui lance [Claude Code](https://claude.com/claude-code) sur un projet de ton PC. Tu peux donc coder depuis ton téléphone.
+A Discord slash command, `/claude <prompt>`, that runs [Claude Code](https://claude.com/claude-code) on a project on your computer. Use it to code from your phone. If your repo already sends commit notifications to Discord, you can read Claude's last commit and send the next prompt from the same channel.
 
-- `/claude prompt:...` reprend la conversation précédente, pour enchaîner.
-- `/claude prompt:... nouveau:True` démarre une nouvelle conversation.
-- La réponse de Claude arrive dans le salon du webhook.
-- Les prompts passent un par un.
-- Seul `DISCORD_OWNER` peut s'en servir.
+- `/claude prompt:...` continues the previous conversation.
+- `/claude prompt:... new:True` starts a fresh conversation.
+- Claude's answer is posted to the webhook channel.
+- Prompts run one at a time.
+- Only `DISCORD_OWNER` can use the command. Everyone else gets a private refusal.
 
-Aucune dépendance : il suffit de Node 22 ou plus et de `claude` dans le PATH.
+There are no dependencies. You need Node 22 or later, and Claude Code installed and logged in (`claude` in your PATH).
 
-## Installation
+## Setup
 
-1. Sur https://discord.com/developers/applications, crée une application. Dans l'onglet **Bot**, clique sur **Reset Token** pour obtenir le token.
-2. Dans **OAuth2 → URL Generator**, coche `bot` et `applications.commands`, puis ouvre l'URL générée pour inviter le bot sur ton serveur.
-3. Copie `.env.example` vers `.env` et remplis-le.
-4. Lance `npm start`. Tu dois voir « Connecté en tant que … ».
+1. Go to https://discord.com/developers/applications and click **New Application**. In the **Bot** tab, click **Reset Token** and copy the token.
+2. In **OAuth2 → URL Generator**, tick `bot` and `applications.commands`. Open the generated URL and invite the bot to your server.
+3. Optional: in the channel settings, go to **Integrations → Webhooks**, create a webhook and copy its URL. Claude's answers will be posted there.
+4. Run:
+   ```
+   git clone https://github.com/Ishtarsu-1/Discordbot-claudecode.git && cd Discordbot-claudecode
+   cp .env.example .env   # then fill it in
+   npm start              # should print "Logged in as ..."
+   ```
+5. In Discord, type `/claude` and **pick the command from the popup**. Don't press Enter on the raw text: that sends a normal message, and the bot doesn't read messages.
 
-## Démarrage automatique (Linux, systemd)
+To find your Discord ID, enable **Settings → Advanced → Developer Mode**, then right-click your name and choose **Copy User ID**.
+
+## Run it in the background (Linux, systemd)
 
 ```
-ln -s "$PWD/claude-discord-bot.service" ~/.config/systemd/user/
+mkdir -p ~/.config/systemd/user
+sed "s#__DIR__#$PWD#" claude-discord-bot.service > ~/.config/systemd/user/claude-discord-bot.service
+systemctl --user daemon-reload
 systemctl --user enable --now claude-discord-bot
-loginctl enable-linger $USER
+loginctl enable-linger $USER          # keep it running when you are logged out
 journalctl --user -u claude-discord-bot -f
 ```
 
-Le PC doit rester allumé : en veille, il ne reçoit rien.
+Your computer must stay awake. A sleeping machine receives nothing.
 
-## Sécurité
+## Security
 
-Claude tourne en `--permission-mode auto` : il modifie des fichiers, lance des commandes et commit sans te demander de valider. Garde `DISCORD_OWNER` sur ton compte. Mieux vaut mettre ton ID numérique plutôt que ton pseudo : un pseudo libéré peut être repris par quelqu'un d'autre.
+- The bot runs code on your machine. With the default `CLAUDE_PERMISSION_MODE=auto`, Claude edits files, runs commands and commits without asking you first.
+- Set `DISCORD_OWNER` to your **numeric ID** rather than a username: a username that gets freed up can be claimed by someone else.
+- Never commit `.env`. It is already in `.gitignore`.
+
+## Limits
+
+- The current conversation is kept in memory. Restarting the bot starts a new one.
+- If the connection to Discord drops, the bot reconnects after 5 seconds. A `/claude` sent during that gap is lost.
+
+## License
+
+MIT

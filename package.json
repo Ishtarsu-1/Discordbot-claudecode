@@ -2,7 +2,8 @@
   "name": "discordbot-claudecode",
   "version": "1.0.0",
   "private": true,
-  "description": "Commande Discord /claude qui lance Claude Code sur un projet local",
+  "license": "MIT",
+  "description": "Discord slash command /claude that runs Claude Code on a local project",
   "main": "discord-bot.js",
   "scripts": {
     "start": "node --env-file=.env discord-bot.js"
