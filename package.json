@@ -1,0 +1,11 @@
+{
+  "name": "discordbot-claudecode",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Commande Discord /claude qui lance Claude Code sur un projet local",
+  "main": "discord-bot.js",
+  "scripts": {
+    "start": "node --env-file=.env discord-bot.js"
+  },
+  "engines": { "node": ">=22" }
+}

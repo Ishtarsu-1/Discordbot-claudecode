@@ -1,0 +1,13 @@
+[Unit]
+Description=Bot Discord /claude pour Claude Code
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Projects/Discordbot-claudecode
+# bash -l pour charger le PATH de mise (node, claude)
+ExecStart=/bin/bash -lc 'exec npm start'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
